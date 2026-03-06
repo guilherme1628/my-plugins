@@ -1,0 +1,10 @@
+{
+  "name": "legalizacao-ecab",
+  "version": "1.0.0",
+  "description": "Legalizacao workflow for ECAB system",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}

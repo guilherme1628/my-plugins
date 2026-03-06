@@ -1,0 +1,9 @@
+{
+  "name": "template-filler",
+  "version": "1.0.0",
+  "description": "Automate professional document generation from Google Docs templates with placeholder replacement, CNPJ lookup integration, and contractor memory. Supports contracts, invoices, proposals, and any template-based document while preserving 100% original formatting.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["documents", "templates", "google-docs", "contracts", "invoices", "automation", "cnpj", "brazil"]
+}

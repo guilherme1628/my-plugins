@@ -1,0 +1,9 @@
+{
+  "name": "service-manifest",
+  "version": "1.0.0",
+  "description": "Generate .service.json manifests for integra-contador-tui from CLI SDK sources, help output, or documentation.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["manifest", "tui", "cli", "integra-contador", "service", "code-generation"]
+}

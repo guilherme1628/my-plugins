@@ -1,0 +1,70 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "GBs",
+  "description": "GB's custom Claude Code plugins for productivity and automation",
+  "owner": {
+    "name": "gb"
+  },
+  "plugins": [
+    {
+      "name": "contratos-sociais",
+      "description": "Brazilian corporate contract automation: convert PDF/DOCX contracts to structured JSON and generate contract amendments for Junta Comercial registration.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./contratos-sociais",
+      "category": "productivity"
+    },
+    {
+      "name": "template-filler",
+      "description": "Automate professional document generation from Google Docs templates.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./template-filler",
+      "category": "productivity"
+    },
+    {
+      "name": "service-manifest",
+      "description": "Generate .service.json manifests for integra-contador-tui from CLI SDK sources, help output, or documentation.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./service-manifest",
+      "category": "development"
+    },
+    {
+      "name": "convex",
+      "description": "Convex reactive backend development with TypeScript: best practice skills, MCP integration, specialized agents, and pre-commit validation hooks.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Convex"
+      },
+      "source": "./convex",
+      "category": "development"
+    },
+    {
+      "name": "legalizacao-ecab",
+      "description": "Create company legalizations (ABERTURA, ALTERACAO, BAIXA) in the ECAB system for Brazilian company registration processes.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./legalizacao-ecab",
+      "category": "productivity"
+    },
+    {
+      "name": "legalizacao-trello-deprecated",
+      "description": "DEPRECATED: Company legalizations via Trello. Use legalizacao-ecab instead.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./legalizacao-trello-deprecated",
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "legalizacao-trello-deprecated",
+  "version": "1.0.0",
+  "description": "DEPRECATED: Company legalizations via Trello. Use legalizacao-ecab instead.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["legalizacao", "trello", "deprecated"]
+}

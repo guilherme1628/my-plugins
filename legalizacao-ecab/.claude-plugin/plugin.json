@@ -1,0 +1,9 @@
+{
+  "name": "legalizacao-ecab",
+  "version": "1.0.0",
+  "description": "Create company legalizations (ABERTURA, ALTERACAO, BAIXA) in the ECAB system for Brazilian company registration processes.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["legalizacao", "ecab", "brazil", "abertura", "alteracao", "baixa", "company-registration"]
+}
