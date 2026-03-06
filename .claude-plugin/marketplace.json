@@ -57,6 +57,16 @@
       "category": "productivity"
     },
     {
+      "name": "session",
+      "description": "Session lifecycle management with pause/resume workflow. Auto-detects Serena, OpenSpec, and episodic memory.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./session",
+      "category": "productivity"
+    },
+    {
       "name": "legalizacao-trello-deprecated",
       "description": "DEPRECATED: Company legalizations via Trello. Use legalizacao-ecab instead.",
       "version": "1.0.0",
