@@ -1,3 +1,4 @@
 node_modules/
 .env
 .claude/_SESSION_STATE.md
+.session/
