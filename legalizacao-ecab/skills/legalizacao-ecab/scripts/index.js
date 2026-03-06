@@ -186,68 +186,50 @@ const ALTERATION_TYPE_MAP = {
 };
 
 function buildNotas(data) {
-  let notas = `Tipo: ${data.type}\n`;
-  notas += `Empresa: ${data.basic.companyName}\n`;
-  notas += `Prioridade: ${data.basic.priority}\n`;
-
-  if (data.basic.deadline) {
-    notas += `Prazo: ${data.basic.deadline}\n`;
-  }
-
-  if (data.company) {
-    notas += `\nCAPITAL SOCIAL: ${data.company.socialCapital || "-"}`;
-    if (data.company.iptu) notas += `\nIPTU: ${data.company.iptu}`;
-    if (data.company.activities) {
-      notas += `\n\nATIVIDADES EXERCIDAS:`;
-      data.company.activities.split("\n").forEach((act) => {
-        if (act.trim()) notas += `\n- ${act.trim()}`;
-      });
-    }
-  }
-
-  if (data.partners && data.partners.length > 0) {
-    const tipoSociedade = data.partners.length === 1 ? "Unipessoal" : `${data.partners.length} socios`;
-    notas += `\n\nDADOS DO SOCIO (${tipoSociedade}):`;
-
-    data.partners.forEach((partner, i) => {
-      if (data.partners.length > 1) notas += `\n\nSocio ${i + 1}:`;
-      notas += `\n- ${partner.name}`;
-      notas += `\n- ${partner.birthCity || "-"}/${partner.birthState || "-"}`;
-      notas += `\n- ${partner.maritalStatus || "-"}`;
-      if (partner.marriageRegime && partner.marriageRegime !== "-") {
-        notas += ` - ${partner.marriageRegime}`;
-      }
-      notas += `\n- Profissao: ${partner.profession || "-"}`;
-      notas += `\n- Participacao: ${partner.participation}%`;
-    });
-  }
+  // Only include actionable details — the UI already shows type, company name, and priority.
+  const parts = [];
 
   if (data.alteration) {
     const types = data.alteration.type
       .split(",")
-      .map((t) => ALTERATION_TYPE_MAP[t.trim()] || t.trim())
-      .join(", ");
-    notas += `\n\nTIPO DE ALTERACAO: ${types}`;
-    if (data.alteration.details) notas += `\nDetalhes: ${data.alteration.details}`;
-    if (data.alteration.hasContratoSocial) {
-      notas += `\nContrato social atual: ${data.alteration.hasContratoSocial === "s" ? "Sim" : "Nao"}`;
-    }
-    if (data.alteration.hasDocsSocios) {
-      notas += `\nDocs socios atualizados: ${data.alteration.hasDocsSocios === "s" ? "Sim" : "Nao"}`;
-    }
-    if (data.alteration.observations) notas += `\nObservacoes: ${data.alteration.observations}`;
+      .map((t) => ALTERATION_TYPE_MAP[t.trim()] || t.trim());
+    parts.push(types.join(", "));
+    if (data.alteration.details) parts.push(`\n${data.alteration.details}`);
+    if (data.alteration.observations) parts.push(`\nObs: ${data.alteration.observations}`);
   }
 
   if (data.closure) {
-    notas += `\n\nMOTIVO DO ENCERRAMENTO: ${data.closure.reason}`;
-    notas += `\nDebitos pendentes: ${data.closure.hasDebts === "s" ? "Sim" : "Nao"}`;
-    notas += `\nCertidoes negativas: ${data.closure.hasCertidoes === "s" ? "Sim" : "Nao"}`;
-    notas += `\nContrato social: ${data.closure.hasContratoSocial === "s" ? "Sim" : "Nao"}`;
-    if (data.closure.lastBalanceDate) notas += `\nUltimo balanco: ${data.closure.lastBalanceDate}`;
-    if (data.closure.observations) notas += `\nObservacoes: ${data.closure.observations}`;
+    parts.push(`Motivo: ${data.closure.reason}`);
+    if (data.closure.hasDebts === "s") parts.push(`Débitos pendentes: Sim`);
+    if (data.closure.lastBalanceDate) parts.push(`Último balanço: ${data.closure.lastBalanceDate}`);
+    if (data.closure.observations) parts.push(`\nObs: ${data.closure.observations}`);
   }
 
-  return notas;
+  if (data.company) {
+    if (data.company.activities) {
+      parts.push(`Atividades: ${data.company.activities}`);
+    }
+    if (data.company.socialCapital) parts.push(`Capital social: ${data.company.socialCapital}`);
+    if (data.company.iptu) parts.push(`IPTU: ${data.company.iptu}`);
+    if (data.company.endereco) parts.push(`Endereço: ${data.company.endereco}`);
+  }
+
+  if (data.partners && data.partners.length > 0) {
+    data.partners.forEach((partner, i) => {
+      const label = data.partners.length > 1 ? `\nSócio ${i + 1}: ` : "";
+      let line = `${label}${partner.name}`;
+      line += ` — ${partner.birthCity || "-"}/${partner.birthState || "-"}`;
+      line += `, ${partner.maritalStatus || "-"}`;
+      if (partner.marriageRegime && partner.marriageRegime !== "-") {
+        line += ` (${partner.marriageRegime})`;
+      }
+      line += `, ${partner.profession || "-"}`;
+      line += `, ${partner.participation}%`;
+      parts.push(line);
+    });
+  }
+
+  return parts.join("\n");
 }
 
 // --- Format date DD/MM/YYYY to ISO ---

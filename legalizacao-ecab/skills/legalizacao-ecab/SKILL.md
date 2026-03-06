@@ -36,7 +36,7 @@ Pass the data as a JSON argument — no interactive prompts, no draft step:
 
 **ALTERACAO:**
 ```bash
-node index.js create ALTERACAO '{"basic":{"companyName":"MerchX","clienteId":"504","priority":"normal"},"alteration":{"type":"1","details":"Alterar endereco para Rua X, 123, Bairro, Cidade-UF, CEP: XX.XXX-XXX"}}'
+node index.js create ALTERACAO '{"basic":{"companyName":"MerchX","clienteId":"504","priority":"normal"},"alteration":{"type":"1","details":"Novo endereço: Rua X, 123, Bairro, Cidade-UF, CEP: XX.XXX-XXX"}}'
 ```
 
 **BAIXA:**
@@ -74,7 +74,7 @@ Returns JSON with the created legalizacao:
   },
   "alteration": {
     "type": "1,7",
-    "details": "Description of changes",
+    "details": "Labeled new values (e.g. Novo endereço: Rua X, 123)",
     "hasContratoSocial": "s",
     "hasDocsSocios": "s",
     "observations": "Optional notes"
@@ -83,6 +83,12 @@ Returns JSON with the created legalizacao:
 ```
 
 Alteration types: `1` endereco, `2` objeto social, `3` capital social, `4` inclusao socio, `5` exclusao socio, `6` transferencia cotas, `7` nome empresarial, `8` outro.
+
+**Details formatting:** The `details` field becomes the description in ECAB. Use labeled values so the change is immediately clear:
+- Endereço: `"Novo endereço: Rua X, 123, Bairro, Cidade-UF, CEP: XX.XXX-XXX"`
+- Nome: `"Nova razão social: X LTDA\nNovo nome fantasia: Y"`
+- Capital: `"Novo capital social: R$ 100.000,00"`
+- Sócio: `"Novo sócio: João Silva — 30%\nSócio removido: Maria Santos"`
 
 ### BAIXA
 
@@ -150,9 +156,9 @@ node index.js search "Sylvia"    # get id
 node index.js search "Kiji"      # get id
 node index.js search "MerchX"    # get id
 
-node index.js create ALTERACAO '{"basic":{"companyName":"Sylvia","clienteId":"857","priority":"normal"},"alteration":{"type":"7","details":"Alterar razao social para Sylvia Almeida Gestao LTDA"}}'
-node index.js create ALTERACAO '{"basic":{"companyName":"Kiji Cottons","clienteId":"80","priority":"normal"},"alteration":{"type":"1","details":"Alterar endereco para Rua X, 123"}}'
-node index.js create ALTERACAO '{"basic":{"companyName":"MerchX","clienteId":"504","priority":"normal"},"alteration":{"type":"1","details":"Alterar endereco para Rua Y, 456"}}'
+node index.js create ALTERACAO '{"basic":{"companyName":"Sylvia","clienteId":"857","priority":"normal"},"alteration":{"type":"7","details":"Nova razão social: Sylvia Almeida Gestao LTDA\nNovo nome fantasia: One Connect"}}'
+node index.js create ALTERACAO '{"basic":{"companyName":"Kiji Cottons","clienteId":"80","priority":"normal"},"alteration":{"type":"1","details":"Novo endereço: Rua X, 123, Bairro, Cidade-UF, CEP: XX.XXX-XXX"}}'
+node index.js create ALTERACAO '{"basic":{"companyName":"MerchX","clienteId":"504","priority":"normal"},"alteration":{"type":"1","details":"Novo endereço: Rua Y, 456, Bairro, Cidade-UF, CEP: XX.XXX-XXX"}}'
 ```
 
 ## Interactive Mode (Human Use)
