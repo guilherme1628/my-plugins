@@ -1,0 +1,9 @@
+{
+  "name": "session",
+  "version": "1.0.0",
+  "description": "Session lifecycle management with pause/resume workflow and auto-detection of Serena, OpenSpec, and episodic memory.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["session", "productivity", "workflow"]
+}
