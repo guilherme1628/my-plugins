@@ -18,14 +18,14 @@ Save session state before ending work. Captures progress, blockers, and next act
    - `git log --oneline` — find commits made this session (compare with branch info from state)
    - `git diff --stat` — summarize uncommitted changes
 
-4. **Ask about blockers**
-   - Ask: "Any blockers or issues to note?"
-   - Record response
+4. **Infer blockers from conversation**
+   - Review the full conversation for: unresolved errors, failed attempts, unanswered questions, external dependencies, or anything that prevented progress
+   - Record any blockers found, or "None" if the session went smoothly
 
 5. **Build session summary**
    - From git commits: what was accomplished
    - From conversation: what was discussed/decided
-   - From user: blockers
+   - From conversation: blockers (inferred in step 4)
    - Determine next actions (prioritized list)
 
 6. **Write `.session/state.md`**
