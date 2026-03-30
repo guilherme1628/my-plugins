@@ -75,6 +75,26 @@
       },
       "source": "./legalizacao-trello-deprecated",
       "category": "productivity"
+    },
+    {
+      "name": "diagnose-ui",
+      "description": "UI diagnostic and design quality tools. Systematic process for fixing visual bugs, layout issues, and CSS problems in Tailwind/component-library projects.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./diagnose-ui",
+      "category": "development"
+    },
+    {
+      "name": "agent-teams-framework",
+      "description": "Agent Teams lifecycle management with guided kickoff checklist, context handoff, and compound learning from past team sessions.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./agent_teams_framework",
+      "category": "productivity"
     }
   ]
 }

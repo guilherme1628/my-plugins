@@ -1,0 +1,9 @@
+{
+  "name": "agent-teams-framework",
+  "version": "1.0.0",
+  "description": "Agent Teams lifecycle management with guided kickoff checklist, context handoff, and compound learning from past team sessions.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["agent-teams", "multi-agent", "workflow", "productivity"]
+}
