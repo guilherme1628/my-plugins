@@ -95,6 +95,16 @@
       },
       "source": "./agent_teams_framework",
       "category": "productivity"
+    },
+    {
+      "name": "git-standards",
+      "description": "Enforces professional Gitflow workflow: conventional commits, branch naming, push protection, staging discipline, and PR-based merging.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./git_standards",
+      "category": "development"
     }
   ]
 }

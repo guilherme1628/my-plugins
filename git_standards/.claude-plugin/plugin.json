@@ -1,0 +1,5 @@
+{
+  "name": "git-standards",
+  "version": "1.0.0",
+  "description": "Enforces professional Gitflow workflow: conventional commits, branch naming, push protection, and PR-based merging."
+}
