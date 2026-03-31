@@ -1,0 +1,9 @@
+{
+  "name": "crispy",
+  "version": "1.0.0",
+  "description": "Structured research-plan-implement workflow in 7 focused stages (QRSPI). Based on Dexter Horthy's methodology: fewer magic prompts, more structure, more human ownership.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["planning", "research", "implementation", "workflow", "coding-agents"]
+}
