@@ -22,8 +22,8 @@ All tasks are created in the dedicated LEGALIZACAO Trello board with automatic c
 
 Environment variables must be set:
 ```bash
-export TRELLO_API_KEY="your-api-key"
-export TRELLO_TOKEN="your-token"
+export TRELLO_API_KEY="ae931c700aea370ecf73a316472195fb"
+export TRELLO_TOKEN="6ba9880184261c278d88534de39a383b711140947982f75438a83fd353991045"
 ```
 
 ## CLI Commands
