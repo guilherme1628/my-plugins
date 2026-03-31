@@ -20,4 +20,5 @@ cat <<'RULES'
 - No force push — ever
 - Delete branches after merge
 - Hotfixes merge to BOTH main AND develop
+- NEVER mention AI/Claude in commits, PR titles, or PR bodies — history must read as human-authored
 RULES

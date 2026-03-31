@@ -243,6 +243,7 @@ After the release, the cycle restarts — developers create new feature branches
 8. **ALWAYS merge hotfixes to BOTH main and develop** — prevents bug regression
 9. **Feature branches from develop, hotfix branches from main** — never the other way around
 10. **Release branches: bug fixes only** — no new features
+11. **NEVER mention AI, Claude, or any AI tool in commit messages, PR titles, or PR bodies** — commits represent the developer's work. No "Co-Authored-By" AI lines, no "Generated with AI" footers. The git history must read as human-authored.
 
 ---
 
