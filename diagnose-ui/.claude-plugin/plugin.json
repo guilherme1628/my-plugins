@@ -1,0 +1,9 @@
+{
+  "name": "diagnose-ui",
+  "version": "1.0.0",
+  "description": "UI diagnostic and design quality tools for Svelte/Tailwind projects with shadcn components.",
+  "author": {
+    "name": "gb"
+  },
+  "keywords": ["ui", "design", "diagnostics", "css", "layout"]
+}
