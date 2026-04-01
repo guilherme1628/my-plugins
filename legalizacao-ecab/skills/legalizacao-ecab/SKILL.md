@@ -115,11 +115,12 @@ Alteration types: `1` endereco, `2` objeto social, `3` capital social, `4` inclu
 ```json
 {
   "basic": {
-    "companyName": "Company Name",
+    "companyName": "Option1 / Option2 / Option3",
     "priority": "normal",
-    "deadline": ""
+    "deadline": "26/03/2026"
   },
   "company": {
+    "type": "LTDA Unipessoal",
     "activities": "Comercio de roupas",
     "iptu": "12345",
     "socialCapital": "50000"
@@ -127,16 +128,27 @@ Alteration types: `1` endereco, `2` objeto social, `3` capital social, `4` inclu
   "partners": [
     {
       "name": "Partner Name",
+      "nationality": "Brasileiro",
       "birthCity": "Sao Paulo",
       "birthState": "SP",
-      "maritalStatus": "Solteiro",
-      "marriageRegime": "",
+      "maritalStatus": "Casado",
+      "marriageRegime": "Separacao total de bens",
       "profession": "Empresario",
       "participation": "50",
       "documents": { "rg": "12345", "cpf": "123.456.789-00", "residenceProof": "Conta de luz" }
     }
   ]
 }
+```
+
+**Fields:**
+- `companyName`: Separate multiple name options with `/` or `,` — they will be listed as numbered options
+- `company.type`: e.g. "LTDA Unipessoal", "LTDA", "SLU". Auto-set to "LTDA Unipessoal" if 1 partner
+- `company.socialCapital`: Raw number (e.g. "10000") — auto-formatted to "R$ 10.000,00"
+- `partner.nationality`: e.g. "Brasileiro" — include when known
+- `partner.marriageRegime`: Only needed when `maritalStatus` is "Casado"
+
+**IMPORTANT — Include ALL partner data:** RG, CPF, nationality, naturalidade, comprovante de residência. The description must be complete for the team to process without follow-up questions.
 ```
 
 ## Other Commands

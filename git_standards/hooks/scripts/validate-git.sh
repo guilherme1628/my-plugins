@@ -1,6 +1,7 @@
 #!/bin/bash
 # Git Standards Validator — PreToolUse hook for Bash tool
 # Enforces: conventional commits, branch naming, push protection, staging discipline
+# Understands: Gitflow merge/push workflows (finish-hotfix, finish-release)
 # Design: fail-open (if this script errors, the command is allowed)
 # Requires: jq, git, GNU grep with PCRE (-P flag)
 
@@ -170,7 +171,7 @@ fi
 
 if echo "$command" | grep -qE 'git\s+push'; then
 
-  # Block force push (including --force-with-lease)
+  # Block force push (always forbidden, no exceptions)
   if echo "$command" | grep -qP 'git\s+push\b.*\s(--force\b|-f\b|--force-with-lease\b)'; then
     deny "$(cat <<'MSG'
 FORCE PUSH: Force push is forbidden (including --force-with-lease).
@@ -181,40 +182,81 @@ MSG
 )"
   fi
 
-  # Block push targeting main (standalone arg or refspec target, not inside a branch path)
+  # Push to main — allowed ONLY during finish-hotfix/finish-release workflow
+  # (when you're ON main after merging a hotfix/release into it)
   if echo "$command" | grep -qP 'git\s+push\b.*(\s+main(\s|$)|:main(\s|$))'; then
-    deny "$(cat <<'MSG'
+    if [[ "$current_branch" == "main" ]]; then
+      # Check if HEAD is a merge commit (legitimate finish workflow)
+      if git log -1 --pretty=%P HEAD 2>/dev/null | grep -q ' '; then
+        : # Allow — this is a merge commit push (finish-hotfix or finish-release)
+      else
+        deny "$(cat <<'MSG'
 PUSH PROTECTION: Direct push to 'main' is forbidden.
+
+main only receives merges from release/ or hotfix/ branches.
+Use /finish-hotfix or /finish-release to push merge results to main.
+
+Workflow: release/<version> or hotfix/<name> → merge to main → push
+MSG
+)"
+      fi
+    else
+      deny "$(cat <<'MSG'
+PUSH PROTECTION: Pushing to 'main' from a non-main branch is forbidden.
 
 main only receives merges from release/ or hotfix/ branches via pull request.
 
 Workflow: develop -> release/<version> -> PR -> main
 MSG
 )"
+    fi
   fi
 
-  # Block push targeting develop (standalone arg or refspec target, not inside a branch path)
+  # Push to develop — allowed ONLY during finish workflows
+  # (when you're ON develop after merging main into it for hotfix/release sync)
   if echo "$command" | grep -qP 'git\s+push\b.*(\s+develop(\s|$)|:develop(\s|$))'; then
-    deny "$(cat <<'MSG'
+    if [[ "$current_branch" == "develop" ]]; then
+      # Check if HEAD is a merge commit (legitimate sync from main)
+      if git log -1 --pretty=%P HEAD 2>/dev/null | grep -q ' '; then
+        : # Allow — this is a merge commit push (syncing develop with main)
+      else
+        deny "$(cat <<'MSG'
 PUSH PROTECTION: Direct push to 'develop' is forbidden.
+
+Push your feature branch and open a pull request instead.
+Only merge-commit pushes are allowed (from /finish-hotfix or /finish-release).
+
+Workflow: feature/<name> -> git push -> PR -> develop
+MSG
+)"
+      fi
+    else
+      deny "$(cat <<'MSG'
+PUSH PROTECTION: Pushing to 'develop' from a non-develop branch is forbidden.
 
 Push your feature branch and open a pull request instead.
 
 Workflow: feature/<name> -> git push -> PR -> develop
 MSG
 )"
+    fi
   fi
 
-  # Block bare push (no branch specified) when on protected branch
+  # Block bare push when on protected branch (only if NOT a merge commit)
   if echo "$command" | grep -qP 'git\s+push(\s+-u)?\s+\w+\s*$' ||
      echo "$command" | grep -qP 'git\s+push\s*$'; then
     if [[ "$current_branch" == "main" || "$current_branch" == "develop" ]]; then
-      deny "$(cat <<MSG
+      # Allow if HEAD is a merge commit (finish workflow)
+      if git log -1 --pretty=%P HEAD 2>/dev/null | grep -q ' '; then
+        : # Allow — merge commit push
+      else
+        deny "$(cat <<MSG
 PUSH PROTECTION: You are on '$current_branch'. Direct push is forbidden.
 
-Switch to a feature/hotfix/release branch first.
+Switch to a feature/hotfix/release branch first, or use /finish-hotfix or /finish-release for merge workflows.
 MSG
 )"
+      fi
     fi
   fi
 fi
@@ -245,6 +287,51 @@ Stage specific files instead:
 This prevents accidentally committing .env files, credentials, or unrelated changes.
 MSG
 )"
+fi
+
+# ================================================================
+# 6. MERGE PROTECTION — Only allowed merges
+# ================================================================
+
+if echo "$command" | grep -qE 'git\s+merge'; then
+  merge_target=""
+  if echo "$command" | grep -qP 'git\s+merge\s+\S'; then
+    merge_target=$(echo "$command" | grep -oP '(?<=merge\s)\S+' | head -1)
+  fi
+
+  if [[ -n "$merge_target" ]]; then
+    # Block merging INTO main from anything other than hotfix/, release/, or main itself
+    if [[ "$current_branch" == "main" ]]; then
+      if ! echo "$merge_target" | grep -qP '^(hotfix/|release/)'; then
+        deny "$(cat <<MSG
+MERGE PROTECTION: Cannot merge '$merge_target' into main.
+
+main only accepts merges from:
+  - hotfix/<name>  (urgent production fixes)
+  - release/<version>  (prepared releases)
+
+Use a release branch: git checkout -b release/<version> from develop
+MSG
+)"
+      fi
+    fi
+
+    # Block merging INTO develop from unexpected sources
+    # Allowed: feature/*, main (for hotfix/release sync), hotfix/*, release/*
+    if [[ "$current_branch" == "develop" ]]; then
+      if ! echo "$merge_target" | grep -qP '^(feature/|hotfix/|release/|main$)'; then
+        deny "$(cat <<MSG
+MERGE PROTECTION: Cannot merge '$merge_target' into develop.
+
+develop accepts merges from:
+  - feature/<name>  (completed features)
+  - main  (hotfix/release sync)
+  - hotfix/<name> or release/<name>  (direct merge)
+MSG
+)"
+      fi
+    fi
+  fi
 fi
 
 # All checks passed

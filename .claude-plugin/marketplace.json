@@ -105,6 +105,16 @@
       },
       "source": "./git_standards",
       "category": "development"
+    },
+    {
+      "name": "crispy",
+      "description": "Structured 7-stage research-plan-implement workflow (QRSPI). Focused stages with task tracking, subagent isolation, and human checkpoints.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./crispy",
+      "category": "development"
     }
   ]
 }

@@ -185,48 +185,116 @@ const ALTERATION_TYPE_MAP = {
   "8": "Outro",
 };
 
+function formatCapital(value) {
+  if (!value) return "";
+  const cleaned = String(value).replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(cleaned);
+  if (isNaN(num)) return `R$ ${value}`;
+  const fixed = num.toFixed(2);
+  const [intPart, decPart] = fixed.split(".");
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `R$ ${formatted},${decPart}`;
+}
+
 function buildNotas(data) {
-  // Only include actionable details — the UI already shows type, company name, and priority.
   const parts = [];
+  const type = (data.type || "").toUpperCase();
 
-  if (data.alteration) {
-    const types = data.alteration.type
-      .split(",")
-      .map((t) => ALTERATION_TYPE_MAP[t.trim()] || t.trim());
-    parts.push(types.join(", "));
-    if (data.alteration.details) parts.push(`\n${data.alteration.details}`);
-    if (data.alteration.observations) parts.push(`\nObs: ${data.alteration.observations}`);
-  }
+  if (type === "ABERTURA") {
+    parts.push("ABERTURA DE EMPRESA", "");
 
-  if (data.closure) {
-    parts.push(`Motivo: ${data.closure.reason}`);
-    if (data.closure.hasDebts === "s") parts.push(`Débitos pendentes: Sim`);
-    if (data.closure.lastBalanceDate) parts.push(`Último balanço: ${data.closure.lastBalanceDate}`);
-    if (data.closure.observations) parts.push(`\nObs: ${data.closure.observations}`);
-  }
-
-  if (data.company) {
-    if (data.company.activities) {
-      parts.push(`Atividades: ${data.company.activities}`);
-    }
-    if (data.company.socialCapital) parts.push(`Capital social: ${data.company.socialCapital}`);
-    if (data.company.iptu) parts.push(`IPTU: ${data.company.iptu}`);
-    if (data.company.endereco) parts.push(`Endereço: ${data.company.endereco}`);
-  }
-
-  if (data.partners && data.partners.length > 0) {
-    data.partners.forEach((partner, i) => {
-      const label = data.partners.length > 1 ? `\nSócio ${i + 1}: ` : "";
-      let line = `${label}${partner.name}`;
-      line += ` — ${partner.birthCity || "-"}/${partner.birthState || "-"}`;
-      line += `, ${partner.maritalStatus || "-"}`;
-      if (partner.marriageRegime && partner.marriageRegime !== "-") {
-        line += ` (${partner.marriageRegime})`;
+    // Name options
+    if (data.basic?.companyName) {
+      const names = data.basic.companyName.split(/[\/,]/).map((n) => n.trim()).filter(Boolean);
+      if (names.length > 1) {
+        parts.push("OPÇÕES DE NOME:");
+        names.forEach((name, i) => parts.push(`${i + 1}. ${name}`));
+      } else {
+        parts.push(`NOME: ${names[0]}`);
       }
-      line += `, ${partner.profession || "-"}`;
-      line += `, ${partner.participation}%`;
-      parts.push(line);
-    });
+      parts.push("");
+    }
+
+    // Company type
+    if (data.company?.type) {
+      parts.push(`TIPO: ${data.company.type}`);
+    } else if (data.partners?.length === 1) {
+      parts.push("TIPO: LTDA Unipessoal");
+    }
+
+    // Activities
+    if (data.company?.activities) {
+      parts.push(`OBJETO SOCIAL: ${data.company.activities}`);
+    }
+
+    // Social capital
+    if (data.company?.socialCapital) {
+      parts.push(`CAPITAL SOCIAL: ${formatCapital(data.company.socialCapital)}`);
+    }
+
+    // IPTU
+    parts.push(`IPTU: ${data.company?.iptu || "A anexar"}`);
+
+    // Deadline
+    if (data.basic?.deadline) {
+      parts.push(`PRAZO: ${data.basic.deadline}`);
+    }
+
+    // Partners
+    if (data.partners?.length > 0) {
+      parts.push("", "---", "");
+      data.partners.forEach((partner, i) => {
+        if (data.partners.length > 1) {
+          parts.push(`SÓCIO ${i + 1}:`);
+        } else {
+          parts.push("SÓCIO:");
+        }
+        parts.push(`Nome: ${partner.name}`);
+        if (partner.nationality) parts.push(`Nacionalidade: ${partner.nationality}`);
+        let civilStatus = partner.maritalStatus || "-";
+        if (partner.marriageRegime && partner.marriageRegime !== "-" && partner.marriageRegime !== "") {
+          civilStatus += ` — ${partner.marriageRegime}`;
+        }
+        parts.push(`Estado civil: ${civilStatus}`);
+        if (partner.profession) parts.push(`Profissão: ${partner.profession}`);
+        if (partner.documents?.rg) parts.push(`RG: ${partner.documents.rg}`);
+        if (partner.documents?.cpf) parts.push(`CPF: ${partner.documents.cpf}`);
+        if (partner.birthCity || partner.birthState) {
+          parts.push(`Naturalidade: ${partner.birthCity || "-"}/${partner.birthState || "-"}`);
+        }
+        parts.push(`Participação: ${partner.participation}%`);
+        if (partner.documents?.residenceProof) {
+          parts.push(`Comprovante de residência: ${partner.documents.residenceProof}`);
+        }
+        if (i < data.partners.length - 1) parts.push("");
+      });
+    }
+  } else if (type === "ALTERACAO") {
+    parts.push("ALTERAÇÃO CONTRATUAL", "");
+
+    if (data.alteration?.type) {
+      const types = data.alteration.type
+        .split(",")
+        .map((t) => ALTERATION_TYPE_MAP[t.trim()] || t.trim());
+      parts.push(`TIPO: ${types.join(", ")}`);
+    }
+    if (data.alteration?.details) parts.push("", `DETALHES:`, data.alteration.details);
+    if (data.alteration?.hasContratoSocial) {
+      parts.push("", `Contrato social: ${data.alteration.hasContratoSocial === "s" ? "Sim" : "Não"}`);
+    }
+    if (data.alteration?.hasDocsSocios) {
+      parts.push(`Docs sócios: ${data.alteration.hasDocsSocios === "s" ? "Sim" : "Não"}`);
+    }
+    if (data.alteration?.observations) parts.push("", `OBS: ${data.alteration.observations}`);
+  } else if (type === "BAIXA") {
+    parts.push("BAIXA DE EMPRESA", "");
+
+    if (data.closure?.reason) parts.push(`MOTIVO: ${data.closure.reason}`);
+    if (data.closure?.hasDebts) parts.push(`Débitos pendentes: ${data.closure.hasDebts === "s" ? "Sim" : "Não"}`);
+    if (data.closure?.hasCertidoes) parts.push(`Certidões negativas: ${data.closure.hasCertidoes === "s" ? "Sim" : "Não"}`);
+    if (data.closure?.hasContratoSocial) parts.push(`Contrato social: ${data.closure.hasContratoSocial === "s" ? "Sim" : "Não"}`);
+    if (data.closure?.lastBalanceDate) parts.push(`Último balanço: ${data.closure.lastBalanceDate}`);
+    if (data.closure?.observations) parts.push("", `OBS: ${data.closure.observations}`);
   }
 
   return parts.join("\n");
