@@ -18,7 +18,7 @@ All output documents are in **Brazilian Portuguese**. These instructions are in 
 Run the search script to find the company's contract JSON:
 
 ```bash
-python3 $CLAUDE_PLUGIN_ROOT/skills/alteracao/scripts/find_company.py "<company_name>" --jsons-dir "<jsons-directory>" --summary
+python3 $CLAUDE_PLUGIN_ROOT/scripts/find_company.py "<company_name>" --jsons-dir "<jsons-directory>" --summary
 ```
 
 - **Not found**: Ask the user to provide the contract PDF, then invoke the convert-contrato skill to create the JSON first.
@@ -195,9 +195,12 @@ These rules are non-negotiable and must be followed in every alteracao:
 
 ## Resources
 
-### scripts/
+### $CLAUDE_PLUGIN_ROOT/scripts/
 - `find_company.py` -- Searches the jsons directory by company name; prioritizes the latest version (highest-numbered alteracao).
+
+### scripts/
 - `generate-docx.js` -- Complete DOCX generator with dynamic spacing, security measures, and proper formatting. Can be used directly or as reference.
+- `docx-helpers.js` -- Shared DOCX helpers (text formatting, tables, spacing, gender logic). Used by all generators.
 
 ### references/
 - `alteracao-format.md` -- Standard document format: header, preamble, clause patterns, signature block.
