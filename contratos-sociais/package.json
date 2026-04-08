@@ -1,0 +1,16 @@
+{
+  "name": "contratos-sociais",
+  "version": "1.0.0",
+  "description": "Plugin para Claude Code que automatiza o processamento de contratos sociais e alteracoes contratuais de empresas brasileiras.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "docx": "^9.6.1"
+  }
+}
