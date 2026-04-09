@@ -1,6 +1,6 @@
 {
   "name": "contratos-sociais",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Brazilian corporate contract automation: convert PDF/DOCX contracts to structured JSON and generate contract amendments (alteracoes contratuais) for Junta Comercial registration.",
   "author": {
     "name": "gb"
