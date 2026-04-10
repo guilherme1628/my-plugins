@@ -80,7 +80,7 @@ Extract the following fields from the contrato social JSON and prepare the distr
 | Field | Question to Ask |
 |-------|-----------------|
 | `dataEncerramentoAtividades` | "Qual a data de encerramento das atividades? (DD/MM/AAAA)" |
-| `liquidante` | "Qual sócio será responsável pela liquidação do Ativo e Passivo?" (If single partner, auto-assign. If multi-partner, present list and ask.) |
+| `liquidante` | "Qual sócio será responsável pela liquidação do Ativo e Passivo?" (If single partner, auto-assign. If multi-partner, present list and include "Todos" option. Use `"all"` in the input JSON for all partners.) |
 | `nire` (if not found) | "Qual o NIRE da empresa? (Número de Identificação do Registro de Empresas)" |
 | `dataSessao` (if not found) | "Qual a data da sessão de arquivamento na Junta Comercial? (DD/MM/AAAA)" |
 | `dataInicioAtividades` (if not found) | "Qual a data de início das atividades? (DD/MM/AAAA)" |
