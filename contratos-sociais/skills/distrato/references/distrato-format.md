@@ -180,16 +180,22 @@ CLÁUSULA TERCEIRA: A responsabilidade pela liquidação do Ativo e Passivo da s
 CLÁUSULA TERCEIRA: A responsabilidade pela liquidação do Ativo e Passivo da sociedade, com sede [sede], que se dissolve pelo fato de não mais interessar à sócia a exploração objeto do contrato social de constituição, tendo inicio de sua atividade em [data_inicio_atividades] e exercido suas atividades até [data_encerramento], ficará a cargo da sócia [NOME], a qual se compromete a manter em ao guarda os livros e documentos da sociedade, cujo capital social era de R$ [capital] ([extenso]).
 ```
 
-### Multiple Partners
+### Multiple Partners (single liquidante)
 
 ```
 CLÁUSULA TERCEIRA: A responsabilidade pela liquidação do Ativo e Passivo da sociedade, com sede [sede], que se dissolve pelo fato de não mais interessar aos sócios a exploração objeto do contrato social de constituição, tendo inicio de sua atividade em [data_inicio_atividades] e exercido suas atividades até [data_encerramento], ficará a cargo do sócio [NOME DO LIQUIDANTE], o qual se compromete a manter em sua guarda os livros e documentos da sociedade, cujo capital social era de R$ [capital] ([extenso]).
 ```
 
+### Multiple Partners (all as liquidantes)
+
+```
+CLÁUSULA TERCEIRA: A responsabilidade pela liquidação do Ativo e Passivo da sociedade, com sede [sede], que se dissolve pelo fato de não mais interessar aos sócios a exploração objeto do contrato social de constituição, tendo inicio de sua atividade em [data_inicio_atividades] e exercido suas atividades até [data_encerramento], ficará a cargo dos sócios [NOME 1] e [NOME 2], os quais se comprometem a manter em sua guarda os livros e documentos da sociedade, cujo capital social era de R$ [capital] ([extenso]).
+```
+
 ### Data Required (Ask User)
 
 - `data_encerramento`: The date when activities ceased (e.g., "31/03/2026")
-- `liquidante`: Which partner is responsible for liquidation (default: first partner, or ask user to choose)
+- `liquidante`: Which partner is responsible for liquidation. Options: a single partner name, or `"all"` for all partners (default: ask user to choose)
 
 ### Gender/Plural Terms
 

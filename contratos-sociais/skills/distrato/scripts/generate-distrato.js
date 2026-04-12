@@ -17,7 +17,7 @@
  *   - objetoSocial: string
  *   - dataInicioAtividades: string
  *   - dataEncerramentoAtividades: string
- *   - liquidante: string (nome of the liquidation partner)
+ *   - liquidante: string (nome of the liquidation partner, or "all" for all partners)
  *   - cidade: string
  */
 
@@ -187,14 +187,27 @@ const buildClausulaTerceira = (socios, empresa, capitalSocial, dataInicioAtivida
     interesseText = 'aos sócios';
   }
 
-  // Find the liquidante socio to determine gender
-  const liquidanteSocio = socios.find(s => s.nome === liquidante) || socios[0];
-  const liquidanteFem = isFeminino(liquidanteSocio);
-  const cargoText = liquidanteFem ? 'da sócia' : 'do sócio';
-  const qualText = liquidanteFem ? 'a qual' : 'o qual';
+  // Resolve liquidante(s): "all" means every partner, otherwise a single name
+  const isAllLiquidantes = liquidante === 'all';
+  const liquidanteSocios = isAllLiquidantes ? socios : [socios.find(s => s.nome === liquidante) || socios[0]];
+  const isMultiLiquidante = liquidanteSocios.length > 1;
+  const allFem = liquidanteSocios.every(s => isFeminino(s));
+
+  let cargoText, liquidanteNames, qualText;
+  if (isMultiLiquidante) {
+    cargoText = allFem ? 'das sócias' : 'dos sócios';
+    qualText = allFem ? 'as quais se comprometem' : 'os quais se comprometem';
+    const names = liquidanteSocios.map(s => s.nome.toUpperCase());
+    liquidanteNames = names.slice(0, -1).join(', ') + ' e ' + names[names.length - 1];
+  } else {
+    const liquidanteFem = isFeminino(liquidanteSocios[0]);
+    cargoText = liquidanteFem ? 'da sócia' : 'do sócio';
+    qualText = liquidanteFem ? 'a qual se compromete' : 'o qual se compromete';
+    liquidanteNames = liquidanteSocios[0].nome.toUpperCase();
+  }
 
   const body = justifiedPara([
-    normalText(`A responsabilidade pela liquidação do Ativo e Passivo da sociedade, com sede ${empresa.endereco}, que se dissolve pelo fato de não mais interessar ${interesseText} a exploração objeto do contrato social de constituição, tendo inicio de sua atividade em ${dataInicioAtividades} e exercido suas atividades até ${dataEncerramentoAtividades}, ficará a cargo ${cargoText} ${liquidante.toUpperCase()}, ${qualText} se compromete a manter em sua guarda os livros e documentos da sociedade, cujo capital social era de ${capitalSocial.valor} (${capitalSocial.extenso}).`)
+    normalText(`A responsabilidade pela liquidação do Ativo e Passivo da sociedade, com sede ${empresa.endereco}, que se dissolve pelo fato de não mais interessar ${interesseText} a exploração objeto do contrato social de constituição, tendo inicio de sua atividade em ${dataInicioAtividades} e exercido suas atividades até ${dataEncerramentoAtividades}, ficará a cargo ${cargoText} ${liquidanteNames}, ${qualText} a manter em sua guarda os livros e documentos da sociedade, cujo capital social era de ${capitalSocial.valor} (${capitalSocial.extenso}).`)
   ], { keepNext: true });
   return [title, body];
 };
