@@ -87,86 +87,43 @@ MSG
 fi
 
 # ================================================================
-# 3. BRANCH NAMING
+# 3. BRANCH CREATION — Use skills, not raw commands
 # ================================================================
 
-new_branch=""
+if echo "$command" | grep -qP 'git\s+(checkout\s+-b|switch\s+-c|branch\s+(?!-))\s*\S'; then
+  deny "$(cat <<'MSG'
+WORKFLOW: Do not create branches manually.
 
-if echo "$command" | grep -qP 'git\s+checkout\s+-b\s+\S'; then
-  new_branch=$(echo "$command" | grep -oP '(?<=checkout\s-b\s)\S+' | head -1)
-elif echo "$command" | grep -qP 'git\s+switch\s+-c\s+\S'; then
-  new_branch=$(echo "$command" | grep -oP '(?<=switch\s-c\s)\S+' | head -1)
-elif echo "$command" | grep -qP 'git\s+branch\s+(?!-)\S'; then
-  new_branch=$(echo "$command" | grep -oP '(?<=branch\s)(?!-)\S+' | head -1)
+Use the proper skill instead:
+  /start-feature <name>   — creates feature/<name> from develop
+  /start-hotfix <name>    — creates hotfix/<name> from main
+  /start-release <version> — creates release/<version> from develop
+
+These skills ensure: latest pull, correct origin, proper naming, and tracking.
+MSG
+)"
 fi
 
-if [[ -n "$new_branch" && "$new_branch" != "main" && "$new_branch" != "develop" ]]; then
+# ================================================================
+# 4. AI/AUTHOR MENTIONS IN COMMITS
+# ================================================================
 
-  # Validate naming convention
-  if ! echo "$new_branch" | grep -qP '^(feature|hotfix|release)/[a-z0-9][a-z0-9.-]*$'; then
-    deny "$(cat <<MSG
-BRANCH NAMING: '$new_branch' does not follow convention.
+if echo "$command" | grep -qE 'git\s+commit' && echo "$command" | grep -qE '\-m\s'; then
+  if echo "$command" | grep -qPi '(claude|anthropic|openai|gpt|chatgpt|copilot|ai[- ]?(generated|assisted|authored|powered)|co-authored-by.*claude|co-authored-by.*anthropic|co-authored-by.*noreply@anthropic)'; then
+    deny "$(cat <<'MSG'
+AI MENTION: Commit messages must not reference AI tools or AI co-authorship.
 
-Format: type/description
-Types:  feature/ | hotfix/ | release/
-Rules:  lowercase, hyphens and dots only
+Remove any mentions of: Claude, Anthropic, OpenAI, GPT, Copilot,
+AI-generated, AI-assisted, or Co-Authored-By AI lines.
 
-Examples:
-  feature/user-authentication
-  hotfix/payment-bug
-  release/1.2.0
+History must read as human-authored.
 MSG
 )"
-  fi
-
-  # Validate branch origin
-  if [[ -n "$current_branch" ]]; then
-    if echo "$new_branch" | grep -qP '^feature/' && [[ "$current_branch" != "develop" ]]; then
-      deny "$(cat <<MSG
-BRANCH ORIGIN: Feature branches must be created from 'develop'.
-You are currently on '$current_branch'.
-
-Run first:
-  git checkout develop
-  git pull origin develop
-Then create your branch:
-  git checkout -b $new_branch
-MSG
-)"
-    fi
-
-    if echo "$new_branch" | grep -qP '^hotfix/' && [[ "$current_branch" != "main" ]]; then
-      deny "$(cat <<MSG
-BRANCH ORIGIN: Hotfix branches must be created from 'main'.
-You are currently on '$current_branch'.
-
-Run first:
-  git checkout main
-  git pull origin main
-Then create your branch:
-  git checkout -b $new_branch
-MSG
-)"
-    fi
-
-    if echo "$new_branch" | grep -qP '^release/' && [[ "$current_branch" != "develop" ]]; then
-      deny "$(cat <<MSG
-BRANCH ORIGIN: Release branches must be created from 'develop'.
-You are currently on '$current_branch'.
-
-Run first:
-  git checkout develop
-  git pull origin develop
-Then create your branch:
-  git checkout -b $new_branch
-MSG
-)"
-    fi
   fi
 fi
 
 # ================================================================
-# 4. PUSH PROTECTION
+# 5. PUSH PROTECTION
 # ================================================================
 
 if echo "$command" | grep -qE 'git\s+push'; then
@@ -262,7 +219,7 @@ MSG
 fi
 
 # ================================================================
-# 5. STAGING DISCIPLINE
+# 6. STAGING DISCIPLINE
 # ================================================================
 
 if echo "$command" | grep -qP 'git\s+add\s+(-A|--all)\b'; then
@@ -290,7 +247,7 @@ MSG
 fi
 
 # ================================================================
-# 6. MERGE PROTECTION — Only allowed merges
+# 7. MERGE PROTECTION — Only allowed merges
 # ================================================================
 
 if echo "$command" | grep -qE 'git\s+merge'; then
