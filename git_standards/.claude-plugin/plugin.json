@@ -1,5 +1,5 @@
 {
   "name": "git-standards",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Professional Gitflow playbook: branch workflows, conventional commits, code review gates, and naming conventions. Includes /start-feature, /start-hotfix, /start-release, /pr, /finish-hotfix, /finish-release commands and setup scripts."
 }

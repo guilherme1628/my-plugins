@@ -87,21 +87,68 @@ MSG
 fi
 
 # ================================================================
-# 3. BRANCH CREATION — Use skills, not raw commands
+# 3. BRANCH NAMING & ORIGIN
 # ================================================================
 
-if echo "$command" | grep -qP 'git\s+(checkout\s+-b|switch\s+-c|branch\s+(?!-))\s*\S'; then
-  deny "$(cat <<'MSG'
-WORKFLOW: Do not create branches manually.
+new_branch=""
 
-Use the proper skill instead:
-  /start-feature <name>   — creates feature/<name> from develop
-  /start-hotfix <name>    — creates hotfix/<name> from main
-  /start-release <version> — creates release/<version> from develop
+if echo "$command" | grep -qP 'git\s+checkout\s+-b\s+\S'; then
+  new_branch=$(echo "$command" | grep -oP '(?<=checkout\s-b\s)\S+' | head -1)
+elif echo "$command" | grep -qP 'git\s+switch\s+-c\s+\S'; then
+  new_branch=$(echo "$command" | grep -oP '(?<=switch\s-c\s)\S+' | head -1)
+elif echo "$command" | grep -qP 'git\s+branch\s+(?!-)\S'; then
+  new_branch=$(echo "$command" | grep -oP '(?<=branch\s)(?!-)\S+' | head -1)
+fi
 
-These skills ensure: latest pull, correct origin, proper naming, and tracking.
+if [[ -n "$new_branch" && "$new_branch" != "main" && "$new_branch" != "develop" ]]; then
+
+  # Validate naming convention
+  if ! echo "$new_branch" | grep -qP '^(feature|hotfix|release)/[a-z0-9][a-z0-9.-]*$'; then
+    deny "$(cat <<MSG
+BRANCH NAMING: '$new_branch' does not follow convention.
+
+Prefer the proper skill:
+  /start-feature <name>    /start-hotfix <name>    /start-release <version>
+
+Format: type/description
+Types:  feature/ | hotfix/ | release/
+Rules:  lowercase, hyphens and dots only
 MSG
 )"
+  fi
+
+  # Validate branch origin
+  if [[ -n "$current_branch" ]]; then
+    if echo "$new_branch" | grep -qP '^feature/' && [[ "$current_branch" != "develop" ]]; then
+      deny "$(cat <<MSG
+BRANCH ORIGIN: Feature branches must be created from 'develop'.
+You are currently on '$current_branch'.
+
+Prefer: /start-feature <name> (handles checkout + pull + create)
+MSG
+)"
+    fi
+
+    if echo "$new_branch" | grep -qP '^hotfix/' && [[ "$current_branch" != "main" ]]; then
+      deny "$(cat <<MSG
+BRANCH ORIGIN: Hotfix branches must be created from 'main'.
+You are currently on '$current_branch'.
+
+Prefer: /start-hotfix <name> (handles checkout + pull + create)
+MSG
+)"
+    fi
+
+    if echo "$new_branch" | grep -qP '^release/' && [[ "$current_branch" != "develop" ]]; then
+      deny "$(cat <<MSG
+BRANCH ORIGIN: Release branches must be created from 'develop'.
+You are currently on '$current_branch'.
+
+Prefer: /start-release <version> (handles checkout + pull + create)
+MSG
+)"
+    fi
+  fi
 fi
 
 # ================================================================
