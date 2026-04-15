@@ -24,7 +24,7 @@ Example data structure showing all common fields used in document generation.
 
 You can add to this directory:
 
-- **Template examples**: Sample Google Docs templates
+- **Template examples**: Sample `.docx` templates
 - **Field configurations**: JSON schemas for specific templates
 - **Contractor data samples**: Example contractor memory exports
 - **Batch processing configs**: Configuration files for batch document generation
