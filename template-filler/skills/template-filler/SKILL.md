@@ -1,310 +1,153 @@
 ---
 name: template-filler
-description: Automate professional document generation from Google Docs templates with placeholder replacement, CNPJ lookup integration, and contractor memory. This skill should be used when users need to generate contracts, invoices, proposals, or any document from templates while maintaining formatting and managing client data efficiently.
+description: Automate professional document generation from local .docx templates with typed placeholder replacement, CNPJ lookup integration, and contractor memory. Use when generating contracts, invoices, or proposals from Word templates while preserving formatting.
 ---
 
-# Template Filler Skill
+# Template Filler Skill (Local)
 
-Comprehensive toolkit for automated document generation using Google Docs templates with intelligent data collection, Brazilian company data integration (CNPJ lookup), and persistent contractor memory.
-
-## Overview
-
-Template Filler enables automated creation of professional documents (contracts, invoices, proposals) from Google Docs templates by replacing `{{placeholder}}` fields with actual data while preserving 100% of the original formatting. It integrates with ReceitaWS for automatic Brazilian company data lookup and maintains a persistent memory of frequently used contractors to streamline repeat document generation.
+Generate professional documents from **local .docx templates** by replacing typed `{{field:type:format}}` placeholders with actual data. Integrates with ReceitaWS for automatic Brazilian company (CNPJ) lookup and maintains persistent contractor memory. No Google Cloud / Google Drive setup required.
 
 ## When to Use This Skill
 
-Use template-filler when users ask to:
-- Generate documents from templates (contracts, invoices, proposals)
-- Create multiple documents with similar structure
-- Fill Google Docs templates with data
-- Automate contract or invoice generation
-- Manage client/contractor information for reuse
-- Look up Brazilian company data by CNPJ
-- Create professional documents while maintaining formatting
+- Generate contracts, invoices, or proposals from a local Word template
+- Fill repeat documents for the same client faster (contractor memory)
+- Look up Brazilian company data by CNPJ automatically
+- Produce professional documents while preserving original formatting
 
-## Core Capabilities
+## Placeholder Syntax
 
-### 1. Template Management
-- List all available Google Docs templates from Google Drive
-- Parse templates to extract field placeholders (`{{field_name}}`)
-- Auto-detect field types (text, date, currency, CNPJ, email, etc.)
-- Validate template structure and required fields
+Templates use `{{field_name:type:format}}` placeholders:
 
-### 2. Data Collection
-- Intelligent field type detection based on naming conventions
-- Support for text, dates, currency, CNPJ, CPF, CEP, phone, email fields
-- Optional fields marked with `?` syntax
-- Automatic currency-to-text conversion (e.g., "R$ 10.000,00" -> "dez mil reais")
+| Type | Example | Renders |
+|---|---|---|
+| `text` | `{{cliente_nome:text}}` | `Acme LTDA` |
+| `text` + mask | `{{cnpj:text:##.###.###/####-##}}` | `12.345.678/0001-90` |
+| `text_uppercase` | `{{cliente_nome:text_uppercase}}` | `ACME LTDA` |
+| `date` | `{{data_inicio:date:dd/mm/yyyy}}` | `01/05/2026` |
+| `date` long | `{{data:date:dd de MMMM de yyyy}}` | `15 de abril de 2026` |
+| `currency_number` | `{{valor:currency_number:##.###,##}}` | `1.500,00` |
+| `currency_text` | `{{valor_extenso:currency_text}}` | `mil e quinhentos reais` |
 
-### 3. Brazilian Company Integration (ReceitaWS)
-- Automatic CNPJ lookup via ReceitaWS public API
-- Retrieves company name, address, contact information
-- Extracts 15+ fields ready for template population
-- No API key required for ReceitaWS integration
+Mask characters: `#` = digit from input, `@` = letter from input, anything else = literal.
 
-### 4. Contractor Memory
-- Persistent storage of frequently used clients/contractors
-- Search contractors by name, CNPJ, city, or tags
-- Automatic usage tracking (how many times used)
-- Reuse saved data for faster document generation
-- Reduces redundant CNPJ lookups
+**Auto-fallback**: `{{foo_extenso:currency_text}}` resolves from `foo` if `foo_extenso` is not in the data — you only need to provide `valor`, not both `valor` and `valor_extenso`.
 
-### 5. Document Generation
-- Preserve 100% of original template formatting
-- Replace all `{{placeholder}}` fields with actual data
-- Auto-organize documents by type, year, and month
-- Generate descriptive filenames automatically
-- Store in Google Drive with proper structure
-
-## Workflow Decision Tree
+## Directory Layout
 
 ```
-START: User wants to generate a document
-|
-+- Has CNPJ? -----------------+
-|                              |
-NO                            YES
-|                              |
-+- First time client? --+     +- Check contractor memory
-|                        |     |
-YES                     NO     +- Found? ----------+
-|                        |     |                    |
-+- Manual data entry    |    YES                  NO
-|  * Parse template     |     |                    |
-|  * Collect all fields |     +- Reuse saved       +- Lookup CNPJ
-|  * Generate document  |     |   contractor data  |  (ReceitaWS)
-|                        |     |                    |
-+- Save to memory? -----+---->+- Ask only for     +- Save to memory
-                        |     |   missing fields   |
-                        |     |   (value, dates)   |
-                        |     |                    |
-                        +---->+- Generate doc <----+
-                              |
-                              +- Update usage count
+~/Documents/template_filler_data/        ← default data root (override with $TEMPLATE_FILLER_DIR)
+├── templates/                           ← drop .docx templates here (name starts with TEMPLATE_)
+│   └── TEMPLATE_Contrato-Prestacao-Servicos.docx
+├── contratada_*.json                    ← reusable "your firm" data
+├── terms_*.json                         ← optional reusable contract terms
+└── generated/                           ← default output for generate_contract.py
 ```
 
-## Available Scripts
+## Scripts
 
-All scripts are in `$CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/` and return JSON output.
+All scripts live in `$CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/` and return JSON or plain text.
 
 ### list_templates.py
-**Purpose**: List all available Google Docs templates
-
-**Usage**:
+Lists `.docx` files in the templates folder.
 ```bash
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/list_templates.py
-```
-
-**Output**:
-```json
-[
-  {
-    "id": "1abc123...",
-    "name": "TEMPLATE_Contrato_Prestacao_Servicos.gdoc",
-    "type": "Google Docs",
-    "modified": "2025-01-10T15:30:00Z"
-  }
-]
+python3 list_templates.py
 ```
 
 ### parse_template.py
-**Purpose**: Extract field placeholders from a template
-
-**Usage**:
+Extracts typed placeholders from a local `.docx`.
 ```bash
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/parse_template.py <template_id>
+python3 parse_template.py /path/to/TEMPLATE_Contrato.docx
 ```
-
-**Output**:
-```json
-{
-  "fields": [
-    {"name": "contratante_razaoSocial", "type": "text", "required": true},
-    {"name": "valor_total", "type": "currency", "required": true}
-  ],
-  "total_fields": 25
-}
-```
+Output: JSON `{template, total_fields, fields: [{name, type, format, required}, ...]}`
 
 ### lookup_cnpj.py
-**Purpose**: Fetch Brazilian company data via CNPJ
-
-**Usage**:
+Fetches Brazilian company data via ReceitaWS (no API key).
 ```bash
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/lookup_cnpj.py <cnpj>
-```
-
-**Output**:
-```json
-{
-  "success": true,
-  "company_info": {
-    "nome": "EMPRESA EXEMPLO LTDA",
-    "cnpj": "12.345.678/0001-90"
-  },
-  "template_fields": {
-    "contratante_razaoSocial": "EMPRESA EXEMPLO LTDA",
-    "contratante_cnpj": "12.345.678/0001-90",
-    "contratante_endereco_logradouro": "Rua Exemplo, 123"
-  }
-}
+python3 lookup_cnpj.py 12345678000190
 ```
 
 ### manage_contractors.py
-**Purpose**: Manage persistent contractor/client memory
-
-**Actions**: list, search, get
-
-**Usage**:
+Persistent contractor memory (list, search, get).
 ```bash
-# List all
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/manage_contractors.py list
-
-# Search
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/manage_contractors.py search "Petrobras"
-
-# Get with template fields
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/manage_contractors.py get <contractor_id>
+python3 manage_contractors.py list
+python3 manage_contractors.py search "Petrobras"
 ```
 
-### generate_document.py
-**Purpose**: Generate final document from template and data
-
-**Usage**:
+### fill_docx.py
+Low-level template filler. Takes a template and a flat JSON data dict.
 ```bash
-# From data file
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/generate_document.py <template_id> data.json
-
-# From JSON string
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/generate_document.py <template_id> '{"field1": "value1"}'
-
-# With custom name
-python3 $CLAUDE_PLUGIN_ROOT/skills/template-filler/scripts/generate_document.py <template_id> data.json "Contrato_ClienteXYZ"
+python3 fill_docx.py <template.docx> <data.json> [output.docx]
 ```
 
-## Usage Examples
-
-### Example 1: First-Time Client with CNPJ
-
-**User**: "I need to create a contract for CNPJ 12.345.678/0001-90"
-
-**Conversation Flow**:
-```
-Claude: "I'll create a contract for CNPJ 12.345.678/0001-90. Let me look up the company data..."
-[calls lookup_cnpj.py]
-
-Claude: "Found: EMPRESA EXEMPLO LTDA
-         Address: Rua Exemplo, 123, Sao Paulo
-
-         I just need a few more details:
-         - What's the contract value?"
-
-User: "R$ 10.000,00"
-
-Claude: "And the start date?"
-
-User: "01/02/2025"
-
-Claude: [calls generate_document.py]
-        "Contract generated successfully!
-         Contrato_EMPRESA_EXEMPLO_2025-01-13
-         https://docs.google.com/document/d/..."
+### generate_contract.py
+End-to-end orchestrator. Merges contratada JSON + ReceitaWS lookup + contract terms, then fills the template.
+```bash
+python3 generate_contract.py \
+    --template TEMPLATE_Contrato-Prestacao-Servicos \
+    --contratante 41618108000120 \
+    --contratada ~/Documents/template_filler_data/contratada_ecab.json \
+    --terms /tmp/terms.json
 ```
 
-### Example 2: Repeat Client from Memory
+Flags:
+- `--template` — name fragment (resolves against templates folder) or full path
+- `--contratante` — CNPJ (digits or formatted)
+- `--contratada` — JSON file with your firm's fields (`contratada_*`)
+- `--terms` — JSON file with contract-specific fields (`valor`, `multa`, `data_inicio`, `local`, `indice_correcao`, ...)
+- `--output` — optional explicit output path
+- `--dry-run` — print merged data without writing the file
 
-**User**: "Generate another contract for Petrobras"
+## Typical Workflow
 
-**Conversation Flow**:
+1. **One-time setup**: drop your template into `~/Documents/template_filler_data/templates/` and create a `contratada_*.json` with your firm's data.
+2. **For each new contract**, you only need:
+   - Client CNPJ (address comes from ReceitaWS)
+   - Contract terms: `valor`, `data_inicio`, `multa`, `indice_correcao`, `local`
+3. Run `generate_contract.py` — output lands in `~/Documents/template_filler_data/generated/`.
+
+## Data File Shapes
+
+### contratada_*.json (your firm — reusable)
+```json
+{
+  "contratada_razaoSocial": "...",
+  "contratada_cnpj": "...",
+  "contratada_logradouro": "...",
+  "contratada_cidade": "...",
+  "contratada_uf": "...",
+  "contratada_cep": "...",
+  "contratada_crc": "111084/O",
+  "contratada_crc_uf": "MG",
+  "contratada_representanteLegal_nome": "...",
+  "contratada_representanteLegal_cpf": "...",
+  "contratada_representanteLegal_profissao": "Contador"
+}
 ```
-Claude: "I found Petrobras in our contractor memory (used 5 times):
-         Razao Social: PETROLEO BRASILEIRO S A PETROBRAS
-         CNPJ: 33.000.167/0001-01
-         Address: AV REPUBLICA DO CHILE, 65, CENTRO, RIO DE JANEIRO
 
-         I just need the contract details:
-         - Contract value?"
-
-User: "R$ 50.000,00"
-
-Claude: "Start date?"
-
-User: "01/03/2025"
-
-Claude: [generates document]
-        "Contract generated! This is the 6th document for Petrobras.
-         https://docs.google.com/document/d/..."
+### terms.json (contract-specific)
+```json
+{
+  "valor": 450.00,
+  "multa": 450.00,
+  "data_inicio": "2026-05-01",
+  "data": "2026-04-15",
+  "local": "São Paulo",
+  "indice_correcao": "IGPM"
+}
 ```
 
-## Field Types
+`data` defaults to today if omitted.
 
-For comprehensive field type documentation, consult `$CLAUDE_PLUGIN_ROOT/skills/template-filler/references/field_types.md`. Supported types include:
+## Install Dependencies
 
-- **Text**: `{{nome_cliente}}`
-- **Date**: `{{data_contrato}}` -> "15/01/2024"
-- **Currency**: `{{valor_total}}` -> "R$ 10.000,00"
-- **Currency Text**: `{{valor_total_extenso}}` -> "dez mil reais"
-- **CNPJ**: `{{cnpj}}` -> "12.345.678/0001-90"
-- **CPF**, **CEP**, **Phone**, **Email**: Auto-formatted
-- **Optional**: `{{observacoes?}}` - Won't error if missing
-
-## Setup Requirements
-
-Requires Google Cloud setup with Service Account. See `$CLAUDE_PLUGIN_ROOT/skills/template-filler/references/google_drive_setup.md` for detailed instructions.
-
-**Quick setup**:
-1. Create Service Account in Google Cloud Console
-2. Enable Google Drive API & Google Docs API
-3. Download credentials JSON
-4. Share Google Drive folder with service account
-5. Set environment variable:
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials.json"
-   ```
-
-**Install Python dependencies**:
 ```bash
 pip install -r $CLAUDE_PLUGIN_ROOT/requirements.txt
 ```
 
-## Best Practices
+Requires: `python-docx`, `num2words`, `requests`.
 
-1. **Always check contractor memory first** before CNPJ lookup
-2. **Parse template before collecting data** to know exactly what's needed
-3. **Validate data formats** (CNPJ, dates, currency) before generation
-4. **Provide document preview links** so users can verify
-5. **Track contractor usage** to identify frequent clients
-6. **Use descriptive document names** for easy identification
+## Notes & Limitations
 
-## Error Handling
-
-Common issues and solutions:
-
-- **CNPJ Not Found**: Fallback to manual entry, offer to save for future use
-- **Missing Required Fields**: Parse template first to identify all requirements
-- **Google Drive Permissions**: Check folder sharing with service account
-- **Rate Limiting**: Use contractor memory to reduce API calls
-
-## Resources
-
-### scripts/
-Contains executable Python scripts for all operations:
-- `list_templates.py` - List available templates
-- `parse_template.py` - Extract template fields
-- `lookup_cnpj.py` - Brazilian company data lookup
-- `manage_contractors.py` - Contractor memory management
-- `generate_document.py` - Document generation
-
-Scripts execute without loading into context but can be read for environment adjustments.
-
-### references/
-Documentation for in-depth understanding:
-- `field_types.md` - Comprehensive field type reference with validation rules
-- `google_drive_setup.md` - Step-by-step Google Cloud and Drive configuration
-- `workflow_guide.md` - Detailed workflows, integration patterns, batch processing
-
-Load these references when users need detailed information about specific topics.
-
-### assets/
-- `example_data.json` - Example data structure showing all common fields
-- `README.md` - Guide for adding custom assets
+- **Run collapsing**: when a placeholder spans multiple formatting runs inside a paragraph, the filler collapses them into the first run. Mixed bold/italic *inside the same paragraph* will normalize to the first run's formatting. Separate paragraphs are unaffected.
+- **Templates must be `.docx`** (not legacy `.doc`).
+- ReceitaWS is rate-limited to ~3 req/min on the free tier — contractor memory exists to avoid redundant lookups.

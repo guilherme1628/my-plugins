@@ -1,55 +1,53 @@
 #!/usr/bin/env python3
-"""
-List Templates Script
-Lists all available Google Docs templates from the Templates/ folder.
-"""
+"""List .docx templates from the local templates folder.
 
+Default location: ~/Documents/template_filler_data/templates/
+Override with TEMPLATE_FILLER_DIR env var (points at the parent data dir).
+"""
+import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
-# Add plugin root to path (scripts/ -> skill/ -> skills/ -> plugin root)
-plugin_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(plugin_root))
 
-from template_filler.core.google_drive_manager import GoogleDriveManager
+def templates_dir() -> Path:
+    base = os.getenv("TEMPLATE_FILLER_DIR")
+    if base:
+        return Path(base).expanduser() / "templates"
+    return Path.home() / "Documents" / "template_filler_data" / "templates"
 
 
-def main():
-    """List all available templates."""
-    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-    if not credentials_path or not os.path.exists(credentials_path):
-        print("ERROR: GOOGLE_APPLICATION_CREDENTIALS not configured")
-        print("Set it in your environment or .env file")
+def main() -> int:
+    tdir = templates_dir()
+    if not tdir.exists():
+        print(json.dumps({
+            "error": f"templates directory not found: {tdir}",
+            "hint": "create it and drop TEMPLATE_*.docx files inside",
+        }, indent=2))
         return 1
 
-    try:
-        root_folder_id = os.getenv('TEMPLATE_FILLER_DRIVE_FOLDER_ID')
-        if root_folder_id == 'your_google_drive_folder_id':
-            root_folder_id = None
+    templates = []
+    for path in sorted(tdir.glob("*.docx")):
+        if path.name.startswith("~$"):
+            continue
+        stat = path.stat()
+        name_parts = path.stem.split("_")
+        template_type = name_parts[1] if len(name_parts) > 1 else "Unknown"
+        templates.append({
+            "id": str(path),
+            "name": path.name,
+            "type": template_type,
+            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
+            "size": stat.st_size,
+        })
 
-        manager = GoogleDriveManager(credentials_path, root_folder_id)
-        templates = manager.list_templates()
-
-        if not templates:
-            print("No templates found in Templates/ folder")
-            return 0
-
-        print(f"Found {len(templates)} template(s):")
-        print()
-
-        for template in templates:
-            print(f"• {template['name']}")
-            print(f"  ID: {template['id']}")
-            print(f"  Type: {template['type']}")
-            print(f"  Modified: {template['modified'][:10]}")
-            print()
-
-        return 0
-
-    except Exception as e:
-        print(f"ERROR: {e}")
-        return 1
+    print(json.dumps({
+        "directory": str(tdir),
+        "count": len(templates),
+        "templates": templates,
+    }, indent=2, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":
