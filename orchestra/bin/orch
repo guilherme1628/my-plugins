@@ -1,0 +1,281 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ORCH_HOME="${ORCH_HOME:-$HOME/.orchestra}"
+
+# --- Helpers ---
+
+die() { echo "error: $*" >&2; exit 1; }
+
+session_dir() {
+  echo "$ORCH_HOME/sessions/$1"
+}
+
+require_session() {
+  local dir
+  dir="$(session_dir "$1")"
+  [[ -d "$dir" ]] || die "session '$1' does not exist"
+  echo "$dir"
+}
+
+next_id() {
+  local counter_file="$1/.counter"
+  local n
+  n=$(cat "$counter_file" 2>/dev/null || echo 0)
+  n=$((n + 1))
+  echo "$n" > "$counter_file"
+  printf "%03d" "$n"
+}
+
+now_iso() {
+  date -u +"%Y-%m-%dT%H:%M:%S"
+}
+
+append_log() {
+  echo "[$(now_iso)] $2" >> "$1/log.md"
+}
+
+get_frontmatter_field() {
+  local file="$1" field="$2"
+  awk -v field="$field" '
+    /^---$/ { count++; next }
+    count == 1 && $0 ~ "^"field":" {
+      sub(/^[^:]+:[[:space:]]*/, "")
+      gsub(/^["'"'"'"]|["'"'"'"]$/, "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
+# --- Subcommands ---
+
+cmd_new() {
+  local name="${1:?usage: orch new <session-name>}"
+  local dir
+  dir="$(session_dir "$name")"
+  [[ -d "$dir" ]] && die "session '$name' already exists"
+
+  mkdir -p "$ORCH_HOME/services"
+  mkdir -p "$dir/inbox" "$dir/outbox"
+  echo 0 > "$dir/.counter"
+  touch "$dir/log.md"
+
+  cat > "$dir/manifest.json" <<MANIFEST
+{
+  "session": "$name",
+  "goal": "",
+  "created": "$(now_iso)",
+  "services": {}
+}
+MANIFEST
+
+  append_log "$dir" "session created"
+  echo "created session: $name"
+  echo "  $dir"
+}
+
+cmd_post() {
+  local session="${1:?usage: orch post <session> <service> \"<message>\"}"
+  local service="${2:?usage: orch post <session> <service> \"<message>\"}"
+  local message="${3:?usage: orch post <session> <service> \"<message>\"}"
+  local dir
+  dir="$(require_session "$session")"
+
+  local id
+  id="$(next_id "$dir")"
+
+  cat > "$dir/inbox/$id.md" <<TASK
+---
+id: $id
+from: orchestrator
+to: $service
+status: pending
+created: $(now_iso)
+---
+
+$message
+TASK
+
+  append_log "$dir" "posted task $id to $service"
+  echo "posted task $id to $service"
+}
+
+cmd_check() {
+  local session="${1:?usage: orch check <session>}"
+  local dir
+  dir="$(require_session "$session")"
+
+  echo "=== Pending tasks in $session ==="
+  local found=0
+  for f in "$dir/inbox/"*.md; do
+    [[ -f "$f" ]] || continue
+    local status
+    status="$(get_frontmatter_field "$f" "status")"
+    if [[ "$status" == "pending" ]]; then
+      local id to
+      id="$(get_frontmatter_field "$f" "id")"
+      to="$(get_frontmatter_field "$f" "to")"
+      echo "  $id -> $to ($status)"
+      found=1
+    fi
+  done
+  if [[ "$found" -eq 0 ]]; then echo "  (none)"; fi
+}
+
+cmd_status() {
+  local session="${1:?usage: orch status <session>}"
+  local dir
+  dir="$(require_session "$session")"
+
+  echo "=== Session: $session ==="
+  if command -v jq &>/dev/null; then
+    local goal
+    goal="$(jq -r '.goal // "(none)"' "$dir/manifest.json")"
+    echo "goal: $goal"
+    echo "services:"
+    jq -r '.services | to_entries[] | "  \(.key): \(.value.status)"' "$dir/manifest.json" 2>/dev/null || echo "  (none)"
+  else
+    cat "$dir/manifest.json"
+  fi
+
+  local inbox_count outbox_count
+  inbox_count=$(find "$dir/inbox" -name '*.md' 2>/dev/null | wc -l)
+  outbox_count=$(find "$dir/outbox" -name '*.md' 2>/dev/null | wc -l)
+  echo "inbox: $inbox_count tasks"
+  echo "outbox: $outbox_count results"
+}
+
+cmd_log() {
+  local session="${1:?usage: orch log <session>}"
+  local dir
+  dir="$(require_session "$session")"
+  cat "$dir/log.md"
+}
+
+cmd_results() {
+  local session="${1:?usage: orch results <session>}"
+  local dir
+  dir="$(require_session "$session")"
+
+  echo "=== Results in $session ==="
+  local found=0
+  for f in "$dir/outbox/"*.md; do
+    [[ -f "$f" ]] || continue
+    local id from status
+    id="$(get_frontmatter_field "$f" "id")"
+    from="$(get_frontmatter_field "$f" "from")"
+    status="$(get_frontmatter_field "$f" "status")"
+    echo "  $id <- $from ($status)"
+    found=1
+  done
+  if [[ "$found" -eq 0 ]]; then echo "  (none)"; fi
+}
+
+cmd_join() {
+  local session="${1:?usage: orch join <session>}"
+  local dir
+  dir="$(require_session "$session")"
+
+  local claude_md="$PWD/CLAUDE.md"
+  [[ -f "$claude_md" ]] || die "no CLAUDE.md in current directory -- run from a project root"
+
+  local raw_name
+  raw_name="$(grep -m1 '^# ' "$claude_md" | sed 's/^# //')"
+  [[ -n "$raw_name" ]] || die "CLAUDE.md has no H1 heading"
+  local service_name
+  service_name="$(echo "$raw_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g; s/-\{2,\}/-/g; s/^-//; s/-$//')"
+
+  local capabilities
+  capabilities="$(awk '/^# /{found=1; next} found && /^./{print; exit}' "$claude_md")"
+
+  mkdir -p "$ORCH_HOME/services/$service_name"
+  cat > "$ORCH_HOME/services/$service_name/service.md" <<SVC
+---
+name: $service_name
+project_dir: $PWD
+registered: $(now_iso)
+---
+
+$capabilities
+SVC
+
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg name "$service_name" \
+     --arg status "listening" \
+     --arg project_dir "$PWD" \
+     --arg joined "$(now_iso)" \
+     '.services[$name] = {status: $status, project_dir: $project_dir, joined: $joined}' \
+     "$dir/manifest.json" > "$tmp" && mv "$tmp" "$dir/manifest.json"
+
+  append_log "$dir" "$service_name joined from $PWD"
+  echo "joined session '$session' as '$service_name'"
+  echo "  project: $PWD"
+  echo "  inbox:   $dir/inbox/"
+}
+
+cmd_reply() {
+  local session="${1:?usage: orch reply <session> <task-id> \"<message>\"}"
+  local task_id="${2:?usage: orch reply <session> <task-id> \"<message>\"}"
+  local message="${3:?usage: orch reply <session> <task-id> \"<message>\"}"
+  local dir
+  dir="$(require_session "$session")"
+
+  local inbox_file="$dir/inbox/$task_id.md"
+  [[ -f "$inbox_file" ]] || die "task $task_id not found in inbox"
+
+  local service
+  service="$(get_frontmatter_field "$inbox_file" "to")"
+
+  cat > "$dir/outbox/$task_id.md" <<RESULT
+---
+id: $task_id
+from: $service
+to: orchestrator
+status: completed
+created: $(now_iso)
+---
+
+$message
+RESULT
+
+  sed -i "s/^status:.*/status: completed/" "$inbox_file"
+
+  append_log "$dir" "$service replied to task $task_id"
+  echo "replied to task $task_id as $service"
+}
+
+cmd_help() {
+  cat <<'HELP'
+usage: orch <command> [args]
+
+commands:
+  new <session>                     Create a new orchestration session
+  join <session>                    Join a session (run from project dir)
+  post <session> <service> "<msg>"  Post a task to a service
+  reply <session> <task-id> "<msg>" Reply to a task
+  check <session>                   List pending inbox tasks
+  status <session>                  Show session status and services
+  results <session>                 List outbox results
+  log <session>                     Show session audit log
+HELP
+}
+
+# --- Dispatch ---
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  new)     cmd_new "$@" ;;
+  post)    cmd_post "$@" ;;
+  check)   cmd_check "$@" ;;
+  status)  cmd_status "$@" ;;
+  log)     cmd_log "$@" ;;
+  results) cmd_results "$@" ;;
+  join)    cmd_join "$@" ;;
+  reply)   cmd_reply "$@" ;;
+  help|-h|--help) cmd_help ;;
+  *)       die "unknown command: $cmd (try 'orch help')" ;;
+esac
