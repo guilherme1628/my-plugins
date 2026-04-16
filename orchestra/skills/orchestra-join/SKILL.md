@@ -40,21 +40,24 @@ This reads your CLAUDE.md to derive your service name and capabilities, register
 
 ### 3. Start listening for tasks
 
-Use the **Monitor** tool to watch the session inbox:
+Use the **Monitor** tool to watch the session inbox with a filtered pipeline. Replace `<session-name>` and `<your-service-name>` with actual values:
 
 ```bash
-inotifywait -m -e close_write --format '%f' --include '\.md$' ~/.orchestra/sessions/<session-name>/inbox/
+INBOX="$HOME/.orchestra/sessions/<session-name>/inbox" && inotifywait -m -e close_write --format '%f' --include '\.md$' "$INBOX" | while read -r file; do to=$(awk '/^---$/{c++;next} c==1 && /^to:/{sub(/^[^:]+:[[:space:]]*/,"");print;exit}' "$INBOX/$file"); status=$(awk '/^---$/{c++;next} c==1 && /^status:/{sub(/^[^:]+:[[:space:]]*/,"");print;exit}' "$INBOX/$file"); [ "$to" = "<your-service-name>" ] && [ "$status" = "pending" ] && echo "$file"; done
 ```
 
-This blocks at the OS level with **zero token cost** until a task file arrives. Each new `.md` file triggers a notification with the filename.
+This filters at the bash level — Monitor only notifies you when:
+- The task is addressed to your service name (`to:` field matches)
+- The task is still pending (ignores `sed -i` status updates that re-trigger `close_write`)
+
+Zero token cost while idle. You only wake up for real work.
 
 ### 4. When a task notification arrives
 
 For each notification (a filename like `003.md`):
 
 1. **Read the task file**: Use the Read tool on `~/.orchestra/sessions/<session-name>/inbox/<filename>`
-2. **Check the `to:` field** in the frontmatter. If it does NOT match your service name, **ignore it** and continue listening.
-3. **If it matches you**, read the task body (everything after the `---` frontmatter closing).
+2. Read the task body (everything after the `---` frontmatter closing). The Monitor already filtered for your service name and pending status.
 
 ### 5. Execute the task
 
@@ -72,27 +75,9 @@ After completing the task, run:
 orch reply <session-name> <task-id> "<your response>"
 ```
 
-If the response is long (multi-line), write the outbox file directly:
+This writes the outbox file, updates the inbox status to completed, and appends to the log — all in one command. The status update won't trigger a false notification because the Monitor filters for `status: pending` only.
 
-```bash
-cat > ~/.orchestra/sessions/<session-name>/outbox/<task-id>.md <<'EOF'
----
-id: <task-id>
-from: <your-service-name>
-to: orchestrator
-status: completed
-created: <timestamp>
----
-
-<your detailed response here>
-EOF
-```
-
-Then update the inbox status and log:
-```bash
-sed -i 's/^status:.*/status: completed/' ~/.orchestra/sessions/<session-name>/inbox/<task-id>.md
-echo "[$(date -u +%Y-%m-%dT%H:%M:%S)] <your-service-name> replied to task <task-id>" >> ~/.orchestra/sessions/<session-name>/log.md
-```
+For long multi-line responses, write the outbox file directly with the Write tool, then run `orch reply` with a short summary (it will overwrite, but that's fine — or just write the outbox file and update inbox/log manually).
 
 ### 7. Continue listening
 
