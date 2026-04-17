@@ -92,6 +92,7 @@ When a result notification arrives (a filename like `001.md`):
 2. **Evaluate the response**: Does it satisfy the task? Is there enough information to proceed?
 3. **If a follow-up task depends on this result**: Post the next task, including relevant information from the result
 4. **If the result is insufficient**: Post a clarification task to the same service
+5. **Archive the pair** once you have extracted what you need: `orch archive <session-name> <task-id>`. This moves the inbox/outbox files into `archive/` so the active dirs stay small and future reads or glob/ls calls don't re-surface stale content. The full history stays in `log.md` and under `archive/`.
 
 ### 8. Coordinate across results
 

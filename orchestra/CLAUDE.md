@@ -4,7 +4,7 @@ Event-driven multi-session coordination plugin for Claude Code. Lets independent
 
 ## Structure
 
-- `bin/orch` — Bash CLI (new, join, post, reply, check, status, results, log)
+- `bin/orch` — Bash CLI (new, join, leave, post, reply, archive, check, status, results, log)
 - `skills/orchestra-conduct/` — Orchestrator skill (discover, delegate, collect)
 - `skills/orchestra-join/` — Worker skill (join, listen, execute, reply)
 - `hooks/` — SessionStart injection
@@ -13,7 +13,7 @@ Event-driven multi-session coordination plugin for Claude Code. Lets independent
 ## Mailbox
 
 All state lives in `~/.orchestra/`:
-- `sessions/<name>/` — per-session: manifest.json, inbox/, outbox/, log.md, .counter
+- `sessions/<name>/` — per-session: manifest.json, inbox/, outbox/, archive/{inbox,outbox}/, log.md, .counter
 - `services/<name>/service.md` — global service registry
 
 ## Key Patterns

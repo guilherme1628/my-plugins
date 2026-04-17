@@ -16,7 +16,7 @@ if [[ -d "$HOME/.orchestra" ]]; then
 
 This project is registered as an Orchestra service. Use \`/orchestra-join\` to join a session and start listening for tasks.
 
-Quick commands: \`orch status <session>\`, \`orch join <session>\`, \`orch check <session>\`
+Quick commands: \`orch status <session>\`, \`orch join <session>\`, \`orch leave <session>\`, \`orch check <session>\`
 REMINDER
   else
     cat <<REMINDER

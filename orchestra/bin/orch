@@ -215,6 +215,82 @@ SVC
   echo "  inbox:   $dir/inbox/"
 }
 
+archive_pair() {
+  local dir="$1" id="$2"
+  local inbox_file="$dir/inbox/$id.md"
+  local outbox_file="$dir/outbox/$id.md"
+  [[ -f "$inbox_file" ]] || { echo "  skip $id: no inbox file" >&2; return 1; }
+  [[ -f "$outbox_file" ]] || { echo "  skip $id: no outbox file (task not yet replied)" >&2; return 1; }
+  local status
+  status="$(get_frontmatter_field "$inbox_file" "status")"
+  [[ "$status" == "completed" ]] || { echo "  skip $id: inbox status is '$status', not 'completed'" >&2; return 1; }
+
+  mkdir -p "$dir/archive/inbox" "$dir/archive/outbox"
+  mv "$inbox_file" "$dir/archive/inbox/$id.md"
+  mv "$outbox_file" "$dir/archive/outbox/$id.md"
+  append_log "$dir" "archived task $id"
+  echo "  archived $id"
+  return 0
+}
+
+cmd_archive() {
+  local session="${1:?usage: orch archive <session> [<task-id>]}"
+  local task_id="${2:-}"
+  local dir
+  dir="$(require_session "$session")"
+
+  if [[ -n "$task_id" ]]; then
+    archive_pair "$dir" "$task_id"
+    return
+  fi
+
+  local count=0
+  for f in "$dir/inbox/"*.md; do
+    [[ -f "$f" ]] || continue
+    local status id
+    status="$(get_frontmatter_field "$f" "status")"
+    [[ "$status" == "completed" ]] || continue
+    id="$(get_frontmatter_field "$f" "id")"
+    [[ -f "$dir/outbox/$id.md" ]] || continue
+    if archive_pair "$dir" "$id"; then
+      count=$((count + 1))
+    fi
+  done
+  echo "archived $count pair(s)"
+}
+
+cmd_leave() {
+  local session="${1:?usage: orch leave <session> [<service-name>]}"
+  local override="${2:-}"
+  local dir
+  dir="$(require_session "$session")"
+
+  local service_name
+  if [[ -n "$override" ]]; then
+    service_name="$override"
+  else
+    local claude_md="$PWD/CLAUDE.md"
+    [[ -f "$claude_md" ]] || die "no CLAUDE.md in current directory -- pass <service-name> or run from the project root"
+    local raw_name
+    raw_name="$(grep -m1 '^# ' "$claude_md" | sed 's/^# //')"
+    [[ -n "$raw_name" ]] || die "CLAUDE.md has no H1 heading"
+    service_name="$(echo "$raw_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g; s/-\{2,\}/-/g; s/^-//; s/-$//')"
+  fi
+
+  if ! jq -e --arg name "$service_name" '.services | has($name)' "$dir/manifest.json" >/dev/null; then
+    die "service '$service_name' is not a member of session '$session'"
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg name "$service_name" 'del(.services[$name])' \
+     "$dir/manifest.json" > "$tmp" && mv "$tmp" "$dir/manifest.json"
+
+  append_log "$dir" "$service_name left session"
+  echo "left session '$session' as '$service_name'"
+  echo "  stop the Monitor tool watching $dir/inbox/ to finish detaching"
+}
+
 cmd_reply() {
   local session="${1:?usage: orch reply <session> <task-id> \"<message>\"}"
   local task_id="${2:?usage: orch reply <session> <task-id> \"<message>\"}"
@@ -253,8 +329,10 @@ usage: orch <command> [args]
 commands:
   new <session>                     Create a new orchestration session
   join <session>                    Join a session (run from project dir)
+  leave <session> [<service>]       Leave a session (defaults to current project)
   post <session> <service> "<msg>"  Post a task to a service
   reply <session> <task-id> "<msg>" Reply to a task
+  archive <session> [<task-id>]     Move completed pairs into archive/ (bulk if no id)
   check <session>                   List pending inbox tasks
   status <session>                  Show session status and services
   results <session>                 List outbox results
@@ -275,7 +353,9 @@ case "$cmd" in
   log)     cmd_log "$@" ;;
   results) cmd_results "$@" ;;
   join)    cmd_join "$@" ;;
+  leave)   cmd_leave "$@" ;;
   reply)   cmd_reply "$@" ;;
+  archive) cmd_archive "$@" ;;
   help|-h|--help) cmd_help ;;
   *)       die "unknown command: $cmd (try 'orch help')" ;;
 esac

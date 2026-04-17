@@ -83,6 +83,23 @@ For long multi-line responses, write the outbox file directly with the Write too
 
 After replying, the Monitor is still running. The next inotifywait notification arrives when another task is posted. Repeat from step 4.
 
+### 8. Leaving the session
+
+When the user says "leave the session", "stop listening", or the work is done:
+
+1. Stop the Monitor tool watching the inbox.
+2. Sweep any completed tasks into the archive so the active dirs stay lean:
+   ```bash
+   orch archive <session-name>
+   ```
+   With no task-id, this moves every pair whose inbox status is `completed` (and has a matching outbox reply) into `archive/`. Full history stays in `log.md`.
+3. Run:
+   ```bash
+   orch leave <session-name>
+   ```
+   This removes your service from the session manifest and appends a log entry. The global service registration in `~/.orchestra/services/` is preserved so you can rejoin this or another session later.
+4. Confirm to the user that you have detached.
+
 ## Rules
 
 1. **Never stop listening** unless the user explicitly asks you to leave the session
