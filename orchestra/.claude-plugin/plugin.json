@@ -1,0 +1,7 @@
+{
+  "name": "orchestra",
+  "version": "1.0.0",
+  "description": "Event-driven multi-session coordination for Claude Code. File-based message bus using inotifywait for instant, zero-cost inter-session communication.",
+  "author": { "name": "gb" },
+  "keywords": ["orchestration", "multi-session", "coordination", "inotifywait"]
+}

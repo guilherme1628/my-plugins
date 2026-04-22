@@ -115,6 +115,16 @@
       },
       "source": "./crispy",
       "category": "development"
+    },
+    {
+      "name": "orchestra",
+      "description": "Event-driven multi-session coordination for Claude Code. File-based message bus using inotifywait for instant, zero-cost inter-session communication.",
+      "version": "1.0.0",
+      "author": {
+        "name": "gb"
+      },
+      "source": "./orchestra",
+      "category": "development"
     }
   ]
 }
