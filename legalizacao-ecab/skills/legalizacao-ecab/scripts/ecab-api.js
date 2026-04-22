@@ -5,6 +5,7 @@ class EcabAPI {
     validateConfig();
     this.baseURL = ECAB_CONFIG.SUPABASE_URL;
     this.apiKey = ECAB_CONFIG.API_KEY;
+    this.anonKey = ECAB_CONFIG.SUPABASE_ANON_KEY;
   }
 
   async createLegalizacao({
@@ -34,6 +35,7 @@ class EcabAPI {
       headers: {
         "Content-Type": "application/json",
         "X-API-Key": this.apiKey,
+        Authorization: `Bearer ${this.anonKey}`,
       },
       body: JSON.stringify(body),
     });
@@ -56,6 +58,7 @@ class EcabAPI {
       method: "GET",
       headers: {
         "X-API-Key": this.apiKey,
+        Authorization: `Bearer ${this.anonKey}`,
       },
     });
 
