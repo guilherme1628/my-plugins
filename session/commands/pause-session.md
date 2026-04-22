@@ -5,69 +5,93 @@ Save session state before ending work. Captures progress, blockers, and next act
 
 ## Workflow
 
-1. **Check session exists**
-   - IF `.session/state.md` does not exist:
-     * Create `.session/` directory and a minimal state file
-     * Continue with step 2
+### 1. Run the pre-flight inspector
 
-2. **Read current state**
-   - Read `.session/state.md` for active task and capabilities
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/inspect.sh"
+```
 
-3. **Review current work** (run in parallel):
-   - `git status` — check for uncommitted changes
-   - `git log --oneline` — find commits made this session (compare with branch info from state)
-   - `git diff --stat` — summarize uncommitted changes
+Parse the JSON. Relevant keys: `is_git_repo`, `git.branch`, `git.clean`, `git.untracked`, `git.modified`, `git.staged`, `git.stashes`, `git.recent_commits`, `session_state.exists`, `session_state.status`.
 
-4. **Infer blockers from conversation**
-   - Review the full conversation for: unresolved errors, failed attempts, unanswered questions, external dependencies, or anything that prevented progress
-   - Record any blockers found, or "None" if the session went smoothly
+### 2. Ensure state file exists
 
-5. **Build session summary**
-   - From git commits: what was accomplished
-   - From conversation: what was discussed/decided
-   - From conversation: blockers (inferred in step 4)
-   - Determine next actions (prioritized list)
+If `session_state.exists == false`:
+- Create `.session/` and a minimal state file (see schema below).
+- Add `.session/` to `.gitignore` if `is_git_repo` and not already ignored.
 
-6. **Write `.session/state.md`**
+### 3. Read current state
 
-   Format:
-   ```
-   # Session State
-   **Last Updated**: {YYYY-MM-DD}
-   **Status**: PAUSED
+Read `.session/state.md` for active task, capabilities, and prior `Completed` entries.
 
-   ## Capabilities
-   - serena: {true|false}
-   - openspec: {true|false}
-   - episodic_memory: {true|false}
+### 4. Build session summary
 
-   ## Active Work
-   - **Branch**: {branch-name}
-   - **Task**: {description or "None"}
+- **What was accomplished** — from `git.recent_commits` that are newer than the last recorded session (compare subjects to what's already in `Completed Previously`).
+- **What was discussed/decided** — from this conversation.
+- **Blockers** — scan the conversation for:
+  * unresolved errors (look for "error", "failed", "not working")
+  * unanswered user questions
+  * waiting on external input (approvals, credentials, upstream fixes)
+  * If none → "None".
+- **Stash pointers** — if `git.stashes > 0`, run `git stash list` and record each with the branch it was taken on and a one-line intent.
+- **Next actions** — prioritized list.
 
-   ## Completed This Session
-   1. {item}
-   2. {item}
+### 5. Write `.session/state.md`
 
-   ## Blocking Issues
-   {blockers or "None"}
+Schema:
 
-   ## Next Actions
-   1. {priority action}
-   2. {secondary action}
-   ```
+```markdown
+# Session State
+**Last Updated**: {YYYY-MM-DD}
+**Status**: PAUSED
 
-7. **Warn about uncommitted changes**
-   - IF `git status` shows uncommitted changes:
-     * Alert: "You have uncommitted changes. Consider committing before ending."
-     * Do NOT auto-commit
+## Capabilities
+- serena: {true|false}
+- openspec: {true|false}
+- episodic_memory: {true|false}
 
-8. **Present summary**
-   - Brief 2-3 line summary of what was accomplished
-   - Next actions
-   - "Session paused. Resume with `/resume-session`"
+## Active Work
+- **Branch**: {branch-name or "n/a (not a git repo)"} [optional: "(N commits ahead of develop)"]
+- **Task**: {description or "None"}
+
+## Completed This Session
+1. {item}
+2. {item}
+
+## Completed Previously
+{preserved from prior state, trimmed to last 8-10 items}
+
+## Blocking Issues
+{bullet list or "None"}
+
+## Stash
+{for each stash: `stash@{N}` on `{branch}`: {intent}. To resume: `git switch {branch} && git stash pop`}
+{or "(none)"}
+
+## Next Actions
+1. {priority action}
+2. {secondary action}
+```
+
+**Demotion rule**: when writing, move items from `Completed This Session` in the *previous* state into `Completed Previously`, keeping the list at ~8-10 entries.
+
+### 6. Warn about uncommitted changes
+
+If `git.clean == false`:
+- Alert: "You have uncommitted changes in: {git.modified + git.staged + git.untracked}. Consider committing before ending."
+- Do NOT auto-commit.
+
+If not a git repo: skip this step entirely.
+
+### 7. Present summary
+
+- 2-3 line recap of accomplishments.
+- Blockers (if any).
+- Next actions.
+- "Session paused. Resume with `/session:resume-session`."
 
 ## Report
 - State saved to: `.session/state.md`
-- Uncommitted changes: {yes|no}
-- Resume with: `/resume-session`
+- Git repo: {yes | no}
+- Uncommitted changes: {yes | no | n/a}
+- Stashes: {count}
+- Resume with: `/session:resume-session`
